@@ -6,6 +6,8 @@ import net.rafalohaki.veloauth.config.Settings.PremiumResolverSettings;
 import net.rafalohaki.veloauth.database.PremiumUuidDao;
 import net.rafalohaki.veloauth.model.PremiumUuid;
 import org.slf4j.Logger;
+import org.slf4j.Marker;
+import org.slf4j.MarkerFactory;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -27,6 +29,7 @@ public class PremiumResolverService {
 
     private static final Pattern VALID_USERNAME = Pattern.compile("^\\w{3,16}$");
     private static final String RESOLVER_SERVICE = "resolver-service";
+    private static final Marker PREMIUM_MARKER = MarkerFactory.getMarker("PREMIUM");
 
     private final Logger logger;
     private final PremiumUuidDao dao; // Renamed to avoid conflict with class name
@@ -51,7 +54,7 @@ public class PremiumResolverService {
         this.alertService = alertService;
 
         if (logger.isInfoEnabled()) {
-            logger.info("[PremiumResolver] Config - Mojang: {}, Ashcon: {}, Wpme: {}",
+            logger.info(PREMIUM_MARKER, "[PremiumResolver] Config - Mojang: {}, Ashcon: {}, Wpme: {}",
                     rs.isMojangEnabled(),
                     rs.isAshconEnabled(),
                     rs.isWpmeEnabled());
@@ -64,10 +67,10 @@ public class PremiumResolverService {
         this.maxCacheSize = 10_000;
 
         if (premiumTtlMillis == 0 && logger.isWarnEnabled()) {
-            logger.warn("[PremiumResolver] hitTtlMinutes = 0 — premium cache disabled, every login will query API!");
+            logger.warn(PREMIUM_MARKER, "[PremiumResolver] hitTtlMinutes = 0 — premium cache disabled, every login will query API!");
         }
         if (missTtlMillis == 0 && logger.isWarnEnabled()) {
-            logger.warn("[PremiumResolver] missTtlMinutes = 0 — miss cache disabled, every unknown player will query API!");
+            logger.warn(PREMIUM_MARKER, "[PremiumResolver] missTtlMinutes = 0 — miss cache disabled, every unknown player will query API!");
         }
     }
 
@@ -110,7 +113,7 @@ public class PremiumResolverService {
         }
 
         if (logger.isWarnEnabled()) {
-            logger.warn("[PremiumResolver] No premium resolvers enabled - defaulting offline");
+            logger.warn(PREMIUM_MARKER, "[PremiumResolver] No premium resolvers enabled - defaulting offline");
         }
         PremiumResolution disabled = PremiumResolution.offline(trimmed, RESOLVER_SERVICE, "no resolvers enabled");
         cacheResult(cacheKey, disabled);
@@ -201,20 +204,20 @@ public class PremiumResolverService {
         } else {
             unknownCount.incrementAndGet();
             if (logger.isDebugEnabled()) {
-                logger.debug("[PARALLEL] {} returned UNKNOWN for {}: {}", resolver.id(), trimmed, resolution.message());
+                logger.debug(PREMIUM_MARKER, "[PARALLEL] {} returned UNKNOWN for {}: {}", resolver.id(), trimmed, resolution.message());
             }
         }
     }
 
     private void logResolutionResult(PremiumResolver resolver, String trimmed, String status) {
         if (logger.isDebugEnabled()) {
-            logger.debug("[PARALLEL] {} returned {} for {}", resolver.id(), status, trimmed);
+            logger.debug(PREMIUM_MARKER, "[PARALLEL] {} returned {} for {}", resolver.id(), status, trimmed);
         }
     }
 
     private void logResolverFailure(PremiumResolver resolver, String trimmed, Exception e) {
         if (logger.isWarnEnabled()) {
-            logger.warn("[PARALLEL] {} failed for {}: {}", resolver.id(), trimmed, e.getMessage());
+            logger.warn(PREMIUM_MARKER, "[PARALLEL] {} failed for {}: {}", resolver.id(), trimmed, e.getMessage());
         }
     }
 
@@ -226,7 +229,7 @@ public class PremiumResolverService {
                     .join();
         } catch (Exception e) {
             if (logger.isDebugEnabled()) {
-                logger.debug("[PARALLEL] Timeout or error waiting for resolvers: {}", e.getMessage());
+                logger.debug(PREMIUM_MARKER, "[PARALLEL] Timeout or error waiting for resolvers: {}", e.getMessage());
             }
         }
     }
@@ -235,7 +238,7 @@ public class PremiumResolverService {
         if (results.premium() != null) {
             savePremiumToCache(results.premium(), trimmed);
             if (logger.isInfoEnabled()) {
-                logger.info("[PARALLEL] Premium confirmed for {} from {}", trimmed, results.premium().source());
+                logger.info(PREMIUM_MARKER, "[PARALLEL] Premium confirmed for {} from {}", trimmed, results.premium().source());
             }
             return results.premium();
         }
@@ -246,16 +249,16 @@ public class PremiumResolverService {
             // NOT that the player might be premium. A premium player would be found by at least
             // one working resolver. Blocking offline players due to API failures is too strict.
             if (results.hasUnknown() && logger.isDebugEnabled()) {
-                logger.debug("[PARALLEL] OFFLINE confirmed for {} (some resolvers returned unknown, but at least one confirmed offline)", trimmed);
+                logger.debug(PREMIUM_MARKER, "[PARALLEL] OFFLINE confirmed for {} (some resolvers returned unknown, but at least one confirmed offline)", trimmed);
             }
             if (logger.isDebugEnabled()) {
-                logger.debug("[PARALLEL] Player {} resolved as offline", trimmed);
+                logger.debug(PREMIUM_MARKER, "[PARALLEL] Player {} resolved as offline", trimmed);
             }
             return results.offline();
         }
 
         if (logger.isWarnEnabled()) {
-            logger.warn("[PARALLEL] All resolvers returned unknown for {} - possible API issues", trimmed);
+            logger.warn(PREMIUM_MARKER, "[PARALLEL] All resolvers returned unknown for {} - possible API issues", trimmed);
         }
         return PremiumResolution.unknown(RESOLVER_SERVICE, "all resolvers failed");
     }
@@ -272,7 +275,7 @@ public class PremiumResolverService {
         if (resolution.uuid() != null) {
             boolean saved = dao.saveOrUpdate(resolution.uuid(), trimmed);
             if (saved && logger.isDebugEnabled()) {
-                logger.debug("[PremiumResolver] zapisano do DB cache: {} -> {}", trimmed, resolution.uuid());
+                logger.debug(PREMIUM_MARKER, "[PremiumResolver] zapisano do DB cache: {} -> {}", trimmed, resolution.uuid());
             }
         }
     }
@@ -294,7 +297,7 @@ public class PremiumResolverService {
         PremiumResolution cached = getFromCache(cacheKey);
         if (cached != null) {
             if (logger.isDebugEnabled()) {
-                logger.debug("[PremiumResolver] memory cache hit {} -> {}", trimmed, cached.status());
+                logger.debug(PREMIUM_MARKER, "[PremiumResolver] memory cache hit {} -> {}", trimmed, cached.status());
             }
             return cached;
         }
@@ -312,7 +315,7 @@ public class PremiumResolverService {
             // Zapisz do memory cache
             cacheResult(cacheKey, result);
             if (logger.isInfoEnabled()) {
-                logger.info("[PremiumResolver] database cache hit {} -> {} (UUID: {})",
+                logger.info(PREMIUM_MARKER, "[PremiumResolver] database cache hit {} -> {} (UUID: {})",
                         trimmed, result.status(), premiumUuid.getUuid());
             }
             return result;
@@ -346,7 +349,7 @@ public class PremiumResolverService {
         }
         if (!canonical.equalsIgnoreCase(requestName)) {
             if (logger.isDebugEnabled()) {
-                logger.debug("[PremiumResolver] username mismatch {} vs {} from {}", canonical, requestName, source);
+                logger.debug(PREMIUM_MARKER, "[PremiumResolver] username mismatch {} vs {} from {}", canonical, requestName, source);
             }
             return PremiumResolution.offline(requestName, source, "username mismatch with canonical name");
         }
@@ -385,7 +388,7 @@ public class PremiumResolverService {
                         .forEach(entry -> cache.remove(entry.getKey()));
 
                 if (logger.isDebugEnabled()) {
-                    logger.debug("[PremiumResolver] Cache eviction: removed {} entries, new size: {}",
+                    logger.debug(PREMIUM_MARKER, "[PremiumResolver] Cache eviction: removed {} entries, new size: {}",
                             entriesToRemove, cache.size());
                 }
             }
@@ -404,7 +407,7 @@ public class PremiumResolverService {
         int size = cache.size();
         cache.clear();
         if (logger.isDebugEnabled()) {
-            logger.debug("[PremiumResolver] Shutdown complete — cleared {} cached entries", size);
+            logger.debug(PREMIUM_MARKER, "[PremiumResolver] Shutdown complete — cleared {} cached entries", size);
         }
     }
 

@@ -1001,8 +1001,4 @@ public class ConnectionManager {
     private void disconnectWithError(Player player, String message) {
         player.disconnect(Component.text(message, NamedTextColor.RED));
     }
-
-    private Component createUnknownErrorComponent() {
-        return Component.text(messages.get(MSG_ERROR_UNKNOWN), NamedTextColor.RED);
-    }
 }

@@ -3,6 +3,8 @@ package net.rafalohaki.veloauth.alert;
 import net.rafalohaki.veloauth.config.Settings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.Marker;
+import org.slf4j.MarkerFactory;
 
 import java.time.Instant;
 import java.util.concurrent.ConcurrentHashMap;
@@ -24,6 +26,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class PremiumResolverAlertService implements AutoCloseable {
 
     private static final Logger logger = LoggerFactory.getLogger(PremiumResolverAlertService.class);
+    private static final Marker PREMIUM_MARKER = MarkerFactory.getMarker("PREMIUM");
 
     private final Settings.AlertSettings alertSettings;
     private final DiscordWebhookClient discordClient;
@@ -66,7 +69,7 @@ public class PremiumResolverAlertService implements AutoCloseable {
                 TimeUnit.MINUTES
         );
 
-        logger.info("Alert service initialized (Discord: {}, Check interval: {}min)",
+        logger.info(PREMIUM_MARKER, "Alert service initialized (Discord: {}, Check interval: {}min)",
                 discordClient != null ? "enabled" : "disabled",
                 alertSettings.getCheckIntervalMinutes());
     }
@@ -119,7 +122,7 @@ public class PremiumResolverAlertService implements AutoCloseable {
         long cooldownMs = alertSettings.getAlertCooldownMinutes() * 60_000L;
 
         if (now - last < cooldownMs) {
-            logger.debug("Alert cooldown active, skipping ({}s remaining)",
+            logger.debug(PREMIUM_MARKER, "Alert cooldown active, skipping ({}s remaining)",
                     (cooldownMs - (now - last)) / 1000);
             return;
         }
@@ -152,11 +155,11 @@ public class PremiumResolverAlertService implements AutoCloseable {
             if (sent) {
                 logLocalAlert(total, failed, failureRate, "Premium resolver alert sent to Discord: {}/{} ({}%)");
             } else {
-                logger.error("Failed to send Discord alert (check webhook URL)");
+                logger.error(PREMIUM_MARKER, "Failed to send Discord alert (check webhook URL)");
             }
 
         } catch (Exception e) {
-            logger.error("Error sending Discord alert", e);
+            logger.error(PREMIUM_MARKER, "Error sending Discord alert", e);
         }
     }
 
@@ -166,7 +169,7 @@ public class PremiumResolverAlertService implements AutoCloseable {
 
     private void logLocalAlert(int total, int failed, double failureRate, String template) {
         if (logger.isWarnEnabled()) {
-            logger.warn(template,
+            logger.warn(PREMIUM_MARKER, template,
                     failed, total, String.format("%.1f", failureRate * 100));
         }
     }
@@ -234,7 +237,7 @@ public class PremiumResolverAlertService implements AutoCloseable {
 
         if (previousTotal > 0 && logger.isDebugEnabled()) {
             double failureRate = (double) previousFailed / previousTotal;
-            logger.debug("Metrics reset: {}/{} requests failed ({}%)",
+            logger.debug(PREMIUM_MARKER, "Metrics reset: {}/{} requests failed ({}%)",
                     previousFailed, previousTotal, String.format("%.1f", failureRate * 100));
         }
     }
@@ -260,7 +263,7 @@ public class PremiumResolverAlertService implements AutoCloseable {
 
     @Override
     public void close() {
-        logger.info("Shutting down alert service...");
+        logger.info(PREMIUM_MARKER, "Shutting down alert service...");
         scheduler.shutdown();
         try {
             if (!scheduler.awaitTermination(5, TimeUnit.SECONDS)) {
@@ -270,7 +273,7 @@ public class PremiumResolverAlertService implements AutoCloseable {
             Thread.currentThread().interrupt();
             scheduler.shutdownNow();
         }
-        logger.info("Alert service shut down");
+        logger.info(PREMIUM_MARKER, "Alert service shut down");
     }
 
     /**
