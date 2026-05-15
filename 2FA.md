@@ -57,7 +57,14 @@ Run this **after** logging in (the normal `/login <password>` flow). VeloAuth wi
 2. The `otpauth://` URI.
 3. An ASCII QR code (unless the operator disabled `show-ascii-qr`).
 
-Scan the QR with Google Authenticator / Authy / Aegis / FreeOTP / 1Password. Then confirm:
+If `qr-link-enabled: true` (default), the chat also contains a clickable `[ Click here to
+scan the QR code in your browser ]` line — clicking it opens your default browser to a
+third-party QR rendering service that draws a real, scannable QR image. Once you see it,
+scan with your authenticator app.
+
+If you'd rather not click the link (privacy: it sends your TOTP secret to a third party
+over TLS), paste the Base32 secret manually into your authenticator's "enter setup key"
+field. Both paths produce the same result. Then confirm:
 
 ```
 /2fa verify 123456
@@ -131,8 +138,18 @@ two-factor:
   clean state.
 - `issuer` — what shows up in the player's authenticator app next to each saved code
   (typically your server name). Must not contain `:` (reserved by the otpauth URI format).
-- `show-ascii-qr` — when `true`, `/2fa setup` and `/2fa qr` render the QR as Unicode block
-  characters in chat. Disable to keep enrollment output text-only (Base32 + otpauth URI).
+- `qr-link-enabled` — when `true` (default), `/2fa setup` and `/2fa qr` append a clickable
+  `[ Click here to scan ... ]` line whose target is an external QR-rendering URL. **Privacy
+  trade-off:** the `otpauth://` URI contains the player's shared TOTP secret; enabling this
+  sends that secret over TLS to whatever service `qr-link-url-template` points at. Set to
+  `false` to keep enrollment text-only — the player still gets the Base32 secret and the
+  `otpauth://` URI and can either type the secret into their authenticator app or paste the
+  URI on a phone that supports it.
+- `qr-link-url-template` — the URL the clickable QR link opens. `{uri}` is replaced at runtime
+  with the URL-encoded `otpauth://` URI. Default uses [api.qrserver.com](https://api.qrserver.com)
+  (free, no signup, returns a PNG). Self-hosting: point this at your own QR endpoint, e.g.
+  `https://qr.mydomain.tld/?data={uri}`. Validation requires `http(s)://` scheme + literal
+  `{uri}` placeholder.
 - `pending-timeout-seconds` — how long a post-`/login` player has to enter a TOTP code before
   the pending state expires. Range: 30–1800. Default: 300.
 
@@ -217,11 +234,11 @@ What 2FA does **not** protect:
 - Pending 2FA state lives in memory (Caffeine cache, bounded to 10 000 concurrent entries,
   TTL = `pending-timeout-seconds`). A plugin reload or proxy restart wipes pending states; the
   affected players just `/login` again.
-- The ASCII QR uses two-char-wide modules (`██` / `  `) to compensate for Minecraft's
-  taller-than-wide font, with a 2-module quiet zone on every side. If your players' scanners
-  struggle with it, the QR rendering helper lives in
-  [`QrAsciiRenderer.java`](src/main/java/net/rafalohaki/veloauth/auth/totp/QrAsciiRenderer.java)
-  and the quiet zone can be widened in one place.
+- QR rendering is **not** done in-chat. Earlier versions tried to render an ASCII QR using
+  Unicode block characters but Minecraft's chat font is taller-than-wide and varies across
+  resource packs / client mods — the result was unscannable on most setups. The clickable
+  link approach (delegated to a browser-rendered QR) is the practical replacement; set
+  `qr-link-enabled: false` to keep enrollment fully on-server.
 
 ---
 

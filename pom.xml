@@ -117,15 +117,6 @@
             <version>3.1.8</version>
         </dependency>
 
-        <!-- QR Code generator: pure Java, MIT, ~30 KB. Used by /2fa setup / /2fa qr to
-             render the otpauth:// URI as a unicode block-char QR in chat. Relocated to
-             net.rafalohaki.veloauth.libs.qrcodegen in the shade plugin below. -->
-        <dependency>
-            <groupId>io.nayuki</groupId>
-            <artifactId>qrcodegen</artifactId>
-            <version>1.8.0</version>
-        </dependency>
-
         <!-- Configuration - YAML -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
@@ -324,14 +315,6 @@
                                 <relocation>
                                     <pattern>com.github.benmanes.caffeine</pattern>
                                     <shadedPattern>net.rafalohaki.veloauth.libs.caffeine</shadedPattern>
-                                </relocation>
-                                <!--
-                                  Nayuki QR code generator relocation. Tiny library but still
-                                  shaded for plugin classloader isolation.
-                                -->
-                                <relocation>
-                                    <pattern>io.nayuki.qrcodegen</pattern>
-                                    <shadedPattern>net.rafalohaki.veloauth.libs.qrcodegen</shadedPattern>
                                 </relocation>
                             </relocations>
                             <transformers>

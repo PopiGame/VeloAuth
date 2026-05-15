@@ -164,7 +164,15 @@ public final class LanguageFileManager {
                         writer.newLine();
                     }
                 }
-                logger.info("Added {} missing keys to {}: {}", missingKeys.size(), filename, missingKeys);
+                // Summary at INFO (one short line per file), full key list at DEBUG.
+                // On first startup after an upgrade this fires once per language file × N new keys —
+                // a single INFO line per file is enough for operators; DEBUG keeps the full diff
+                // for anyone tracing translation-key issues.
+                logger.info("Added {} missing keys to {} (run with DEBUG to list them)",
+                        missingKeys.size(), filename);
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Added missing keys to {}: {}", filename, missingKeys);
+                }
             } else {
                 logger.debug("Language file {} is up to date", filename);
             }
@@ -337,8 +345,12 @@ public final class LanguageFileManager {
                         writer.newLine();
                     }
                 }
-                logger.info("Added {} missing keys to messages_{}.properties from English template: {}",
-                        missingKeys.size(), language, missingKeys);
+                // Same INFO summary + DEBUG details split as in mergeLanguageFile (line ~167).
+                logger.info("Added {} missing keys to messages_{}.properties from English template (run with DEBUG to list them)",
+                        missingKeys.size(), language);
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Added missing keys to messages_{}.properties: {}", language, missingKeys);
+                }
             }
         } catch (IOException e) {
             logger.warn("Failed to fill missing keys for language {}: {}", language, e.getMessage());

@@ -138,6 +138,8 @@ class SimpleMessagesKeysTest {
             "2fa.setup.account_label",
             "2fa.setup.verify_prompt",
             "2fa.setup.uri_label",
+            "2fa.setup.qr_link_label",
+            "2fa.setup.qr_link_hover",
             "2fa.verify.usage",
             "2fa.verify.no_pending",
             "2fa.verify.invalid_format",

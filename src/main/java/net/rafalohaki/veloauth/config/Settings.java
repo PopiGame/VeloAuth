@@ -181,7 +181,8 @@ public class Settings {
     private void copyTwoFactorSettings(TwoFactorSettings source) {
         twoFactorSettings.setEnabled(source.isEnabled());
         twoFactorSettings.setIssuer(source.getIssuer());
-        twoFactorSettings.setShowAsciiQr(source.isShowAsciiQr());
+        twoFactorSettings.setQrLinkEnabled(source.isQrLinkEnabled());
+        twoFactorSettings.setQrLinkUrlTemplate(source.getQrLinkUrlTemplate());
         twoFactorSettings.setPendingTimeoutSeconds(source.getPendingTimeoutSeconds());
     }
 
@@ -560,17 +561,32 @@ public class Settings {
      * because we use the same RFC 6238 parameter set as every other authenticator app.
      */
     public static class TwoFactorSettings {
+        /**
+         * Default URL template for an external QR-rendering service. {@code {uri}} is
+         * substituted with the URL-encoded {@code otpauth://} string at runtime. Chosen
+         * because the API is documented, free, and the URL is short. Operators worried
+         * about leaking the shared secret to a third party should either set
+         * {@code qr-link-enabled: false} or point this template at their own QR endpoint.
+         */
+        private static final String DEFAULT_QR_URL_TEMPLATE =
+                "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data={uri}";
+
         private boolean enabled = true;
         private String issuer = "VeloAuth";
-        private boolean showAsciiQr = true;
+        private boolean qrLinkEnabled = true;
+        private String qrLinkUrlTemplate = DEFAULT_QR_URL_TEMPLATE;
         private int pendingTimeoutSeconds = 300;
 
         public boolean isEnabled() { return enabled; }
         void setEnabled(boolean value) { this.enabled = value; }
         public String getIssuer() { return issuer; }
         void setIssuer(String value) { this.issuer = (value == null || value.isBlank()) ? "VeloAuth" : value; }
-        public boolean isShowAsciiQr() { return showAsciiQr; }
-        void setShowAsciiQr(boolean value) { this.showAsciiQr = value; }
+        public boolean isQrLinkEnabled() { return qrLinkEnabled; }
+        void setQrLinkEnabled(boolean value) { this.qrLinkEnabled = value; }
+        public String getQrLinkUrlTemplate() { return qrLinkUrlTemplate; }
+        void setQrLinkUrlTemplate(String value) {
+            this.qrLinkUrlTemplate = (value == null || value.isBlank()) ? DEFAULT_QR_URL_TEMPLATE : value;
+        }
         public int getPendingTimeoutSeconds() { return pendingTimeoutSeconds; }
         void setPendingTimeoutSeconds(int value) { this.pendingTimeoutSeconds = value; }
     }

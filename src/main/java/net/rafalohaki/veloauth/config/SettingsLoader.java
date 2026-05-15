@@ -67,7 +67,8 @@ final class SettingsLoader {
         Settings.TwoFactorSettings target = state.twoFactorSettings;
         target.setEnabled(YamlParserUtils.getBoolean(twoFactor, YAML_FIELD_ENABLED, target.isEnabled()));
         target.setIssuer(YamlParserUtils.getString(twoFactor, "issuer", target.getIssuer()));
-        target.setShowAsciiQr(YamlParserUtils.getBoolean(twoFactor, "show-ascii-qr", target.isShowAsciiQr()));
+        target.setQrLinkEnabled(YamlParserUtils.getBoolean(twoFactor, "qr-link-enabled", target.isQrLinkEnabled()));
+        target.setQrLinkUrlTemplate(YamlParserUtils.getString(twoFactor, "qr-link-url-template", target.getQrLinkUrlTemplate()));
         target.setPendingTimeoutSeconds(YamlParserUtils.getInt(twoFactor, "pending-timeout-seconds", target.getPendingTimeoutSeconds()));
     }
 
@@ -450,7 +451,8 @@ final class SettingsLoader {
                                                   Settings.TwoFactorSettings target) {
             target.setEnabled(source.isEnabled());
             target.setIssuer(source.getIssuer());
-            target.setShowAsciiQr(source.isShowAsciiQr());
+            target.setQrLinkEnabled(source.isQrLinkEnabled());
+            target.setQrLinkUrlTemplate(source.getQrLinkUrlTemplate());
             target.setPendingTimeoutSeconds(source.getPendingTimeoutSeconds());
         }
 

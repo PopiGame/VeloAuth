@@ -4,11 +4,13 @@ import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.command.SimpleCommand;
 import com.velocitypowered.api.proxy.Player;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import net.rafalohaki.veloauth.audit.AuditEventType;
 import net.rafalohaki.veloauth.audit.AuditLogService;
 import net.rafalohaki.veloauth.auth.totp.PendingTotpState;
-import net.rafalohaki.veloauth.auth.totp.QrAsciiRenderer;
 import net.rafalohaki.veloauth.auth.totp.TotpService;
 import net.rafalohaki.veloauth.config.Settings;
 import net.rafalohaki.veloauth.model.RegisteredPlayer;
@@ -16,6 +18,8 @@ import net.rafalohaki.veloauth.util.PlayerAddressUtils;
 import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
 
@@ -134,23 +138,35 @@ class TwoFactorCommand implements SimpleCommand {
                                 Settings.TwoFactorSettings settings) {
         player.sendMessage(ctx.sm().key("2fa.setup.generated_header", NamedTextColor.GOLD));
         player.sendMessage(ctx.sm().key("2fa.setup.scan_instruction", NamedTextColor.YELLOW));
-        if (settings.isShowAsciiQr()) {
-            try {
-                player.sendMessage(Component.text(QrAsciiRenderer.render(otpUri), NamedTextColor.WHITE));
-            } catch (RuntimeException e) {
-                // QR rendering must never block enrollment — fallback to text-only.
-                if (ctx.logger().isWarnEnabled()) {
-                    ctx.logger().warn(AUTH_MARKER,
-                            "QR render failed for {} ({}), falling back to text-only secret",
-                            nickname, e.getMessage());
-                }
-            }
+        if (settings.isQrLinkEnabled()) {
+            sendQrLink(player, otpUri, settings);
         }
         player.sendMessage(ctx.sm().key("2fa.setup.secret_label", NamedTextColor.YELLOW, secret));
         player.sendMessage(ctx.sm().key("2fa.setup.issuer_label", NamedTextColor.YELLOW, settings.getIssuer()));
         player.sendMessage(ctx.sm().key("2fa.setup.account_label", NamedTextColor.YELLOW, nickname));
         player.sendMessage(ctx.sm().key("2fa.setup.uri_label", NamedTextColor.YELLOW, otpUri));
         player.sendMessage(ctx.sm().key("2fa.setup.verify_prompt", NamedTextColor.GRAY));
+    }
+
+    /**
+     * Sends the clickable {@code [ Scan QR ]} line. We render it as an Adventure Component
+     * with a {@code clickEvent(openUrl(...))} so the player's Minecraft client opens the URL
+     * in their default browser, where the third-party service draws a real PNG QR code.
+     * <p>
+     * Why a link instead of an in-chat ASCII QR: Minecraft's chat font is monospaced but
+     * taller than wide, and many resource packs / client mods replace glyph metrics; in
+     * practice the Unicode-block-art QR is unreadable to phone scanners on most setups.
+     * A browser-rendered QR is reliable.
+     */
+    private void sendQrLink(Player player, String otpUri, Settings.TwoFactorSettings settings) {
+        String resolvedUrl = settings.getQrLinkUrlTemplate()
+                .replace("{uri}", URLEncoder.encode(otpUri, StandardCharsets.UTF_8));
+        Component label = ctx.sm().key("2fa.setup.qr_link_label", NamedTextColor.AQUA)
+                .decoration(TextDecoration.UNDERLINED, true)
+                .clickEvent(ClickEvent.openUrl(resolvedUrl))
+                .hoverEvent(HoverEvent.showText(
+                        ctx.sm().key("2fa.setup.qr_link_hover", NamedTextColor.GRAY)));
+        player.sendMessage(label);
     }
 
     // ===== verify =====
