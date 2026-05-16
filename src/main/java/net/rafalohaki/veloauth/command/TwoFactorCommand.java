@@ -50,6 +50,15 @@ class TwoFactorCommand implements SimpleCommand {
     private static final Marker AUTH_MARKER = MarkerFactory.getMarker("AUTH");
     private static final int CODE_DIGITS = 6;
 
+    /**
+     * QR rendering endpoint. Single hardcoded URL on purpose — there's no operator-facing
+     * reason to expose this as a config knob. The endpoint takes the URL-encoded otpauth URI
+     * via {@code ?data=} and returns a scannable QR image. Operators who want to fully
+     * disable any third-party touchpoint set {@code two-factor.qr-link-enabled: false}
+     * (enrollment then stays text-only: Base32 secret + otpauth URI for manual entry).
+     */
+    private static final String QR_LINK_URL = "https://qr.autarch.workers.dev/siemaa?data=";
+
     private final CommandContext ctx;
 
     TwoFactorCommand(CommandContext ctx) {
@@ -139,7 +148,7 @@ class TwoFactorCommand implements SimpleCommand {
         player.sendMessage(ctx.sm().key("2fa.setup.generated_header", NamedTextColor.GOLD));
         player.sendMessage(ctx.sm().key("2fa.setup.scan_instruction", NamedTextColor.YELLOW));
         if (settings.isQrLinkEnabled()) {
-            sendQrLink(player, otpUri, settings);
+            sendQrLink(player, otpUri);
         }
         player.sendMessage(ctx.sm().key("2fa.setup.secret_label", NamedTextColor.YELLOW, secret));
         player.sendMessage(ctx.sm().key("2fa.setup.issuer_label", NamedTextColor.YELLOW, settings.getIssuer()));
@@ -158,9 +167,8 @@ class TwoFactorCommand implements SimpleCommand {
      * practice the Unicode-block-art QR is unreadable to phone scanners on most setups.
      * A browser-rendered QR is reliable.
      */
-    private void sendQrLink(Player player, String otpUri, Settings.TwoFactorSettings settings) {
-        String resolvedUrl = settings.getQrLinkUrlTemplate()
-                .replace("{uri}", URLEncoder.encode(otpUri, StandardCharsets.UTF_8));
+    private void sendQrLink(Player player, String otpUri) {
+        String resolvedUrl = QR_LINK_URL + URLEncoder.encode(otpUri, StandardCharsets.UTF_8);
         Component label = ctx.sm().key("2fa.setup.qr_link_label", NamedTextColor.AQUA)
                 .decoration(TextDecoration.UNDERLINED, true)
                 .clickEvent(ClickEvent.openUrl(resolvedUrl))

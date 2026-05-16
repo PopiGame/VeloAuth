@@ -57,23 +57,6 @@ public final class SettingsValidator {
             throw new IllegalArgumentException(
                 "two-factor.issuer must not contain ':' (reserved separator in otpauth URI)");
         }
-
-        if (twoFactor.isQrLinkEnabled()) {
-            String template = twoFactor.getQrLinkUrlTemplate();
-            if (template == null || template.isBlank()) {
-                throw new IllegalArgumentException(
-                    "two-factor.qr-link-url-template must not be empty when qr-link-enabled is true");
-            }
-            if (!template.startsWith("http://") && !template.startsWith("https://")) {
-                throw new IllegalArgumentException(
-                    "two-factor.qr-link-url-template must start with http:// or https://");
-            }
-            if (!template.contains("{uri}")) {
-                throw new IllegalArgumentException(
-                    "two-factor.qr-link-url-template must contain the literal placeholder '{uri}' "
-                    + "(it is replaced with the URL-encoded otpauth:// URI at runtime)");
-            }
-        }
     }
 
     static void validateDatabase(Settings settings) {

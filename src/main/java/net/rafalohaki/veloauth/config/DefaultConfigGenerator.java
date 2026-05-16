@@ -271,20 +271,15 @@ final class DefaultConfigGenerator {
                   # next to each saved code. Must not contain ':' (reserved by otpauth URI).
                   issuer: "VeloAuth"
                   # Append a clickable [Scan QR] link to /2fa setup / /2fa qr output. Clicking it
-                  # opens the player's browser at the URL below, which renders the otpauth:// URI
-                  # as a real PNG/SVG QR code. Without it players still get the plain Base32 secret
-                  # and the otpauth URI for manual entry into their authenticator app.
+                  # opens the player's browser, which renders the otpauth:// URI as a real QR.
+                  # Without it players still get the plain Base32 secret + otpauth URI for manual
+                  # entry into their authenticator app.
                   #
                   # PRIVACY: the otpauth URI contains the shared TOTP secret. Enabling this sends
-                  # that secret over TLS to the service in `qr-link-url-template`.
-                  # If you don't want any data leaving your infrastructure, set this to false —
-                  # players can still manually paste the Base32 secret into their app.
+                  # that secret over TLS to the VeloAuth-maintained QR endpoint. If you don't want
+                  # any data leaving your infrastructure set this to false — players can still type
+                  # the Base32 secret into their app manually.
                   qr-link-enabled: true
-                  # URL template used when qr-link-enabled is true. `{uri}` is replaced at runtime
-                  # with the URL-encoded otpauth:// URI. The default uses the VeloAuth-maintained
-                  # Autarch Worker endpoint. To self-host, point this at your own QR endpoint:
-                  #   qr-link-url-template: "https://qr.mydomain.tld/?data={uri}"
-                  qr-link-url-template: "https://qr.autarch.workers.dev/siemaa?data={uri}"
                   # Maximum window (seconds) between successful BCrypt verify and TOTP code entry.
                   # After this the player must run /login again. Range: 30-1800. Default: 300 (5 min).
                   pending-timeout-seconds: 300""";

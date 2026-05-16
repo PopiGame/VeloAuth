@@ -130,7 +130,6 @@ two-factor:
   enabled: true
   issuer: "VeloAuth"
   qr-link-enabled: true
-  qr-link-url-template: "https://qr.autarch.workers.dev/siemaa?data={uri}"
   pending-timeout-seconds: 300
 ```
 
@@ -140,17 +139,14 @@ two-factor:
 - `issuer` — what shows up in the player's authenticator app next to each saved code
   (typically your server name). Must not contain `:` (reserved by the otpauth URI format).
 - `qr-link-enabled` — when `true` (default), `/2fa setup` and `/2fa qr` append a clickable
-  `[ Click here to scan ... ]` line whose target is an external QR-rendering URL. **Privacy
-  trade-off:** the `otpauth://` URI contains the player's shared TOTP secret; enabling this
-  sends that secret over TLS to whatever service `qr-link-url-template` points at. Set to
-  `false` to keep enrollment text-only — the player still gets the Base32 secret and the
-  `otpauth://` URI and can either type the secret into their authenticator app or paste the
-  URI on a phone that supports it.
-- `qr-link-url-template` — the URL the clickable QR link opens. `{uri}` is replaced at runtime
-  with the URL-encoded `otpauth://` URI. Default uses the VeloAuth-maintained
-  `https://qr.autarch.workers.dev/siemaa?data={uri}` endpoint. Self-hosting: point this at your own QR endpoint, e.g.
-  `https://qr.mydomain.tld/?data={uri}`. Validation requires `http(s)://` scheme + literal
-  `{uri}` placeholder.
+  `[ Click here to scan ... ]` line that opens the VeloAuth-maintained QR endpoint
+  ([`qr.autarch.workers.dev`](https://qr.autarch.workers.dev)) in the player's browser.
+  **Privacy trade-off:** the `otpauth://` URI contains the player's shared TOTP secret, so
+  enabling the link sends that secret over TLS to the endpoint. Set to `false` to keep
+  enrollment text-only — the player still gets the Base32 secret and the `otpauth://` URI
+  and can either type the secret into their authenticator app or paste the URI on a phone
+  that supports it. The endpoint URL is hardcoded on purpose; there's no operator-tunable
+  template (operators wanting a private flow set `qr-link-enabled: false`).
 - `pending-timeout-seconds` — how long a post-`/login` player has to enter a TOTP code before
   the pending state expires. Range: 30–1800. Default: 300.
 
