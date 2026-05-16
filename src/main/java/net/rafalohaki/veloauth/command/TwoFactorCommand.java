@@ -52,12 +52,14 @@ class TwoFactorCommand implements SimpleCommand {
 
     /**
      * QR rendering endpoint. Single hardcoded URL on purpose — there's no operator-facing
-     * reason to expose this as a config knob. The endpoint takes the URL-encoded otpauth URI
-     * via {@code ?data=} and returns a scannable QR image. Operators who want to fully
-     * disable any third-party touchpoint set {@code two-factor.qr-link-enabled: false}
-     * (enrollment then stays text-only: Base32 secret + otpauth URI for manual entry).
+     * reason to expose this as a config knob. Format: {@code <prefix>/<base32-secret>} —
+     * the worker hosts a fixed otpauth-URI template and pastes the secret into it before
+     * rendering the QR. Endpoint is maintained by the VeloAuth author (pure text-to-QR,
+     * no logging/storage). Operators who want fully air-gapped enrollment set
+     * {@code two-factor.qr-link-enabled: false} — enrollment stays text-only (Base32
+     * secret + otpauth URI for manual entry).
      */
-    private static final String QR_LINK_URL = "https://qr.autarch.workers.dev/siemaa?data=";
+    private static final String QR_LINK_URL = "https://qr.autarch.workers.dev/";
 
     private final CommandContext ctx;
 
@@ -148,7 +150,7 @@ class TwoFactorCommand implements SimpleCommand {
         player.sendMessage(ctx.sm().key("2fa.setup.generated_header", NamedTextColor.GOLD));
         player.sendMessage(ctx.sm().key("2fa.setup.scan_instruction", NamedTextColor.YELLOW));
         if (settings.isQrLinkEnabled()) {
-            sendQrLink(player, otpUri);
+            sendQrLink(player, secret);
         }
         player.sendMessage(ctx.sm().key("2fa.setup.secret_label", NamedTextColor.YELLOW, secret));
         player.sendMessage(ctx.sm().key("2fa.setup.issuer_label", NamedTextColor.YELLOW, settings.getIssuer()));
@@ -162,13 +164,18 @@ class TwoFactorCommand implements SimpleCommand {
      * with a {@code clickEvent(openUrl(...))} so the player's Minecraft client opens the URL
      * in their default browser, where the configured service draws a real PNG QR code.
      * <p>
+     * URL shape: {@code <QR_LINK_URL>/<base32-secret>}. The worker hosts a fixed otpauth
+     * template (issuer/account/algorithm/digits/period) and only needs the secret to render
+     * a scannable QR — keeps the URL short and avoids putting the full otpauth URI in path,
+     * history, and any redirect referrer.
+     * <p>
      * Why a link instead of an in-chat ASCII QR: Minecraft's chat font is monospaced but
      * taller than wide, and many resource packs / client mods replace glyph metrics; in
      * practice the Unicode-block-art QR is unreadable to phone scanners on most setups.
      * A browser-rendered QR is reliable.
      */
-    private void sendQrLink(Player player, String otpUri) {
-        String resolvedUrl = QR_LINK_URL + URLEncoder.encode(otpUri, StandardCharsets.UTF_8);
+    private void sendQrLink(Player player, String secret) {
+        String resolvedUrl = QR_LINK_URL + URLEncoder.encode(secret, StandardCharsets.UTF_8);
         Component label = ctx.sm().key("2fa.setup.qr_link_label", NamedTextColor.AQUA)
                 .decoration(TextDecoration.UNDERLINED, true)
                 .clickEvent(ClickEvent.openUrl(resolvedUrl))

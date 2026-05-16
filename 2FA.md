@@ -141,12 +141,14 @@ two-factor:
 - `qr-link-enabled` — when `true` (default), `/2fa setup` and `/2fa qr` append a clickable
   `[ Click here to scan ... ]` line that opens the VeloAuth-maintained QR endpoint
   ([`qr.autarch.workers.dev`](https://qr.autarch.workers.dev)) in the player's browser.
-  **Privacy trade-off:** the `otpauth://` URI contains the player's shared TOTP secret, so
-  enabling the link sends that secret over TLS to the endpoint. Set to `false` to keep
-  enrollment text-only — the player still gets the Base32 secret and the `otpauth://` URI
+  The URL shape is `qr.autarch.workers.dev/<base32-secret>` — the worker hosts a fixed
+  otpauth template (issuer / account / algorithm / digits / period) and only the secret
+  travels in the path. The worker is operated by the VeloAuth maintainer and does only
+  text-to-QR rendering (no logging, no storage). Set to `false` for fully air-gapped
+  enrollment — the player still gets the Base32 secret and the `otpauth://` URI in chat
   and can either type the secret into their authenticator app or paste the URI on a phone
   that supports it. The endpoint URL is hardcoded on purpose; there's no operator-tunable
-  template (operators wanting a private flow set `qr-link-enabled: false`).
+  template.
 - `pending-timeout-seconds` — how long a post-`/login` player has to enter a TOTP code before
   the pending state expires. Range: 30–1800. Default: 300.
 
