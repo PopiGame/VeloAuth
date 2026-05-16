@@ -736,7 +736,6 @@ public class AuthListener {
             logger.debug(AUTH_MARKER, messages.get("player.connected.backend"),
                     player.getUsername(), serverName);
         }
-        player.sendMessage(Component.text(messages.get("general.welcome.full"), NamedTextColor.GREEN));
     }
 
     private void handleAuthServerConnection(Player player) {
